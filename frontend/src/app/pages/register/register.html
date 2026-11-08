@@ -1,0 +1,155 @@
+
+<div class="auth-page">
+  <div class="auth-card">
+
+    <div class="brand">
+      <div class="brand-icon">+</div>
+      <h1>TeleMedecine</h1>
+      <p>Votre santé, notre priorité</p>
+    </div>
+
+    <h2>Créer un compte</h2>
+
+    <p class="subtitle">
+      Inscrivez-vous pour accéder à votre espace patient
+    </p>
+
+    <form (ngSubmit)="onSubmit()" #registerForm="ngForm">
+
+      <div class="form-row">
+        <div class="field">
+          <label for="firstName">Prénom *</label>
+          <input
+            id="firstName"
+            type="text"
+            name="firstName"
+            [(ngModel)]="firstName"
+            placeholder="Votre prénom"
+            autocomplete="given-name"
+            required
+          />
+        </div>
+
+        <div class="field">
+          <label for="lastName">Nom *</label>
+          <input
+            id="lastName"
+            type="text"
+            name="lastName"
+            [(ngModel)]="lastName"
+            placeholder="Votre nom"
+            autocomplete="family-name"
+            required
+          />
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="email">Adresse e-mail *</label>
+        <input
+          id="email"
+          type="email"
+          name="email"
+          [(ngModel)]="email"
+          placeholder="exemple@email.com"
+          autocomplete="email"
+          required
+          email
+        />
+      </div>
+
+      <div class="field">
+        <label for="phoneNumber">Téléphone</label>
+        <input
+          id="phoneNumber"
+          type="tel"
+          name="phoneNumber"
+          [(ngModel)]="phoneNumber"
+          placeholder="06XXXXXXXX"
+          autocomplete="tel"
+        />
+      </div>
+
+      <div class="field">
+        <label for="password">Mot de passe *</label>
+        <input
+          id="password"
+          type="password"
+          name="password"
+          [(ngModel)]="password"
+          placeholder="Minimum 8 caractères"
+          autocomplete="new-password"
+          minlength="8"
+          required
+        />
+
+        <small class="field-hint">
+          Au moins 8 caractères, une majuscule,
+          un chiffre et un caractère spécial.
+        </small>
+      </div>
+
+      <div class="field">
+        <label for="confirmPassword">
+          Confirmer le mot de passe *
+        </label>
+        <input
+          id="confirmPassword"
+          type="password"
+          name="confirmPassword"
+          [(ngModel)]="confirmPassword"
+          placeholder="Retapez votre mot de passe"
+          autocomplete="new-password"
+          required
+        />
+      </div>
+
+      <!-- Message d'erreur -->
+
+      <div
+        *ngIf="errorMessage || validationErrors.length > 0"
+        class="error-box"
+        role="alert"
+      >
+        <div class="error-heading">
+          <span class="error-icon">!</span>
+          <strong>{{ errorMessage }}</strong>
+        </div>
+
+        <ul *ngIf="validationErrors.length > 0">
+          <li *ngFor="let error of validationErrors">
+            {{ error }}
+          </li>
+        </ul>
+      </div>
+
+      <!-- Message de succès -->
+
+      <div
+        *ngIf="successMessage"
+        class="success-box"
+        role="status"
+      >
+        {{ successMessage }}
+      </div>
+
+      <button
+        type="submit"
+        [disabled]="isLoading || registerForm.invalid"
+      >
+        {{
+          isLoading
+            ? 'Création en cours...'
+            : 'Créer mon compte'
+        }}
+      </button>
+
+    </form>
+
+    <p class="register-link">
+      Vous avez déjà un compte ?
+      <a routerLink="/login">Se connecter</a>
+    </p>
+
+  </div>
+</div>

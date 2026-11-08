@@ -1,0 +1,453 @@
+
+<div class="patient-page">
+
+  <header class="page-header">
+    <div>
+      <span class="page-label">ESPACE PATIENT</span>
+      <h1>Mon espace patient</h1>
+      <p>Gérez vos informations personnelles et vos consultations.</p>
+    </div>
+  </header>
+
+  <!-- ================================= -->
+  <!-- MESSAGES PROFIL -->
+  <!-- ================================= -->
+
+  <div class="message loading-message" *ngIf="isLoading">
+    <span class="spinner"></span>
+    Chargement du profil...
+  </div>
+
+  <div class="message error-message" *ngIf="!isLoading && errorMessage">
+    {{ errorMessage }}
+    <button type="button" class="retry-button" (click)="loadProfile()">
+      Réessayer
+    </button>
+  </div>
+
+  <div class="message success-message" *ngIf="successMessage">
+    {{ successMessage }}
+  </div>
+
+  <!-- ================================= -->
+  <!-- PROFIL PATIENT -->
+  <!-- ================================= -->
+
+  <section class="profile-card" *ngIf="!isLoading && profile">
+
+    <div class="profile-card-header">
+      <div>
+        <h2>Informations personnelles</h2>
+        <p>Vos informations de compte patient.</p>
+      </div>
+
+      <button
+        *ngIf="!isEditing"
+        type="button"
+        class="edit-button"
+        (click)="startEditing()">
+        Modifier mon profil
+      </button>
+    </div>
+
+    <!-- Consultation du profil -->
+
+    <div class="profile-grid" *ngIf="!isEditing">
+
+      <div class="profile-field">
+        <span>Prénom</span>
+        <strong>{{ profile.firstName || 'Non renseigné' }}</strong>
+      </div>
+
+      <div class="profile-field">
+        <span>Nom</span>
+        <strong>{{ profile.lastName || 'Non renseigné' }}</strong>
+      </div>
+
+      <div class="profile-field">
+        <span>Adresse e-mail</span>
+        <strong>{{ profile.email || 'Non renseignée' }}</strong>
+      </div>
+
+      <div class="profile-field">
+        <span>Téléphone</span>
+        <strong>{{ profile.phoneNumber || 'Non renseigné' }}</strong>
+      </div>
+
+      <div class="profile-field">
+        <span>Date de naissance</span>
+        <strong>
+          {{ profile.dateOfBirth ? (profile.dateOfBirth | date:'dd/MM/yyyy') : 'Non renseignée' }}
+        </strong>
+      </div>
+
+    </div>
+
+    <!-- Modification du profil -->
+
+    <form
+      *ngIf="isEditing"
+      [formGroup]="patientForm"
+      (ngSubmit)="saveProfile()"
+      class="profile-form">
+
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label for="firstName">Prénom</label>
+          <input
+            id="firstName"
+            type="text"
+            formControlName="firstName"
+            placeholder="Votre prénom">
+
+          <small
+            class="field-error"
+            *ngIf="patientForm.controls.firstName.touched &&
+                   patientForm.controls.firstName.invalid">
+            Le prénom est obligatoire et doit contenir au moins 2 caractères.
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="lastName">Nom</label>
+          <input
+            id="lastName"
+            type="text"
+            formControlName="lastName"
+            placeholder="Votre nom">
+
+          <small
+            class="field-error"
+            *ngIf="patientForm.controls.lastName.touched &&
+                   patientForm.controls.lastName.invalid">
+            Le nom est obligatoire et doit contenir au moins 2 caractères.
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="phoneNumber">Téléphone</label>
+          <input
+            id="phoneNumber"
+            type="tel"
+            formControlName="phoneNumber"
+            placeholder="Votre numéro de téléphone">
+        </div>
+
+        <div class="form-group">
+          <label for="dateOfBirth">Date de naissance</label>
+          <input
+            id="dateOfBirth"
+            type="date"
+            formControlName="dateOfBirth">
+        </div>
+
+        <div class="form-group full-width">
+          <label for="email">Adresse e-mail</label>
+          <input
+            id="email"
+            type="email"
+            [value]="profile.email"
+            disabled>
+          <small>L'adresse e-mail ne peut pas être modifiée ici.</small>
+        </div>
+
+      </div>
+
+      <div class="form-actions">
+        <button
+          type="button"
+          class="cancel-button"
+          (click)="cancelEditing()"
+          [disabled]="isSaving">
+          Annuler
+        </button>
+
+        <button
+          type="submit"
+          class="save-button"
+          [disabled]="isSaving || patientForm.invalid">
+
+          <span class="spinner" *ngIf="isSaving"></span>
+
+          {{ isSaving ? 'Enregistrement...' : 'Enregistrer' }}
+        </button>
+      </div>
+
+    </form>
+
+  </section>
+
+  <!-- ================================= -->
+  <!-- RESERVATION RENDEZ-VOUS -->
+  <!-- ================================= -->
+
+  <section class="appointment-card">
+
+    <div class="section-header">
+      <div>
+        <span class="section-label">CONSULTATION</span>
+        <h2>Prendre un rendez-vous</h2>
+        <p>Choisissez un médecin et votre créneau de consultation.</p>
+      </div>
+    </div>
+
+    <div class="message loading-message" *ngIf="isLoadingDoctors">
+      <span class="spinner"></span>
+      Chargement des médecins disponibles...
+    </div>
+
+    <div
+      class="message error-message"
+      *ngIf="!isLoadingDoctors && doctors.length === 0">
+      Aucun médecin disponible pour le moment.
+      <button
+        type="button"
+        class="retry-button"
+        (click)="loadAvailableDoctors()">
+        Réessayer
+      </button>
+    </div>
+
+    <div class="message error-message" *ngIf="appointmentError">
+      {{ appointmentError }}
+    </div>
+
+    <div class="message success-message" *ngIf="appointmentSuccess">
+      {{ appointmentSuccess }}
+    </div>
+
+    <form
+      *ngIf="!isLoadingDoctors && doctors.length > 0"
+      [formGroup]="appointmentForm"
+      (ngSubmit)="bookAppointment()"
+      class="appointment-form">
+
+      <div class="form-grid">
+
+        <div class="form-group full-width">
+          <label for="doctorId">Médecin</label>
+
+          <select id="doctorId" formControlName="doctorId">
+            <option [ngValue]="null">Choisissez un médecin</option>
+
+            <option
+              *ngFor="let doctor of doctors"
+              [ngValue]="doctor.id">
+              Dr {{ doctor.firstName }} {{ doctor.lastName }}
+              — {{ doctor.specialty }}
+            </option>
+          </select>
+
+          <small
+            class="field-error"
+            *ngIf="appointmentForm.controls.doctorId.touched &&
+                   appointmentForm.controls.doctorId.invalid">
+            Veuillez sélectionner un médecin.
+          </small>
+        </div>
+
+        <div
+          class="doctor-preview full-width"
+          *ngIf="appointmentForm.value.doctorId as selectedDoctorId">
+
+          <ng-container *ngFor="let doctor of doctors">
+            <div class="doctor-preview-content" *ngIf="doctor.id === selectedDoctorId">
+              <div>
+                <strong>Dr {{ doctor.firstName }} {{ doctor.lastName }}</strong>
+                <span>{{ doctor.specialty }}</span>
+                <span *ngIf="doctor.clinicAddress">
+                  {{ doctor.clinicAddress }}
+                </span>
+              </div>
+
+              <div class="doctor-fee">
+                {{ doctor.consultationFee | number:'1.2-2' }} DH
+                <small>Par consultation</small>
+              </div>
+            </div>
+          </ng-container>
+
+        </div>
+
+        <div class="form-group">
+          <label for="appointmentDate">Date du rendez-vous</label>
+          <input
+            id="appointmentDate"
+            type="date"
+            formControlName="appointmentDate"
+            [min]="minimumDate">
+
+          <small
+            class="field-error"
+            *ngIf="appointmentForm.controls.appointmentDate.touched &&
+                   appointmentForm.controls.appointmentDate.invalid">
+            Veuillez choisir une date.
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="appointmentTime">Heure du rendez-vous</label>
+          <input
+            id="appointmentTime"
+            type="time"
+            formControlName="appointmentTime">
+
+          <small
+            class="field-error"
+            *ngIf="appointmentForm.controls.appointmentTime.touched &&
+                   appointmentForm.controls.appointmentTime.invalid">
+            Veuillez choisir une heure.
+          </small>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="reason">Motif de consultation</label>
+          <textarea
+            id="reason"
+            rows="4"
+            formControlName="reason"
+            placeholder="Décrivez brièvement le motif de votre consultation...">
+          </textarea>
+
+          <small>Facultatif — 1000 caractères maximum.</small>
+        </div>
+
+      </div>
+
+      <div class="appointment-info">
+        <span><strong>Durée :</strong> 30 minutes</span>
+        <span><strong>Statut initial :</strong> En attente de confirmation</span>
+      </div>
+
+      <div class="form-actions">
+        <button
+          type="submit"
+          class="save-button"
+          [disabled]="isBooking || appointmentForm.invalid">
+
+          <span class="spinner" *ngIf="isBooking"></span>
+
+          {{ isBooking ? 'Envoi en cours...' : 'Demander un rendez-vous' }}
+        </button>
+      </div>
+
+    </form>
+
+  </section>
+
+  <!-- ================================= -->
+  <!-- MES RENDEZ-VOUS -->
+  <!-- ================================= -->
+
+  <section class="appointments-list-card">
+
+    <div class="section-header">
+      <div>
+        <span class="section-label">SUIVI</span>
+        <h2>Mes rendez-vous</h2>
+        <p>Consultez les demandes et les confirmations de vos consultations.</p>
+      </div>
+
+      <button
+        type="button"
+        class="refresh-button"
+        (click)="loadAppointments()"
+        [disabled]="isLoadingAppointments">
+        Actualiser
+      </button>
+    </div>
+
+    <div class="message loading-message" *ngIf="isLoadingAppointments">
+      <span class="spinner"></span>
+      Chargement de vos rendez-vous...
+    </div>
+
+    <div
+      class="empty-state"
+      *ngIf="!isLoadingAppointments && appointments.length === 0">
+
+      <h3>Aucun rendez-vous</h3>
+      <p>Vos demandes de consultation apparaîtront ici.</p>
+    </div>
+
+    <div
+      class="appointments-list"
+      *ngIf="!isLoadingAppointments && appointments.length > 0">
+
+      <article
+        class="appointment-item"
+        *ngFor="let appointment of appointments">
+
+        <div class="appointment-item-header">
+          <div>
+            <h3>
+              Dr {{ appointment.doctorFirstName }}
+              {{ appointment.doctorLastName }}
+            </h3>
+            <span class="appointment-specialty">
+              {{ appointment.specialty }}
+            </span>
+          </div>
+
+          <span
+            class="status-badge"
+            [ngClass]="getStatusClass(appointment.status)">
+            {{ getStatusLabel(appointment.status) }}
+          </span>
+        </div>
+
+        <div class="appointment-details">
+
+          <div>
+            <span>Date</span>
+            <strong>{{ appointment.startAt | date:'dd/MM/yyyy' }}</strong>
+          </div>
+
+          <div>
+            <span>Heure</span>
+            <strong>
+              {{ appointment.startAt | date:'HH:mm' }}
+              – {{ appointment.endAt | date:'HH:mm' }}
+            </strong>
+          </div>
+
+          <div>
+            <span>Motif</span>
+            <strong>{{ appointment.reason || 'Non renseigné' }}</strong>
+          </div>
+
+        </div>
+
+        <div
+          class="appointment-actions"
+          *ngIf="appointment.status === 'Pending' ||
+                 appointment.status === 'Confirmed'">
+
+          <button
+            type="button"
+            class="cancel-appointment-button"
+            (click)="cancelAppointment(appointment)"
+            [disabled]="cancellingAppointmentId === appointment.appointmentId">
+
+            <span
+              class="spinner"
+              *ngIf="cancellingAppointmentId === appointment.appointmentId">
+            </span>
+
+            {{
+              cancellingAppointmentId === appointment.appointmentId
+                ? 'Annulation...'
+                : 'Annuler le rendez-vous'
+            }}
+          </button>
+
+        </div>
+
+      </article>
+
+    </div>
+
+  </section>
+
+</div>

@@ -1,0 +1,258 @@
+
+<div class="doctor-page">
+
+  <!-- Header -->
+  <header class="page-header">
+    <div>
+      <span class="welcome-label">ESPACE PROFESSIONNEL</span>
+      <h1>Tableau de bord médecin</h1>
+      <p>Gérez vos demandes et vos rendez-vous.</p>
+    </div>
+  </header>
+
+  <!-- Messages -->
+  <div class="alert alert-error" *ngIf="errorMessage">
+    {{ errorMessage }}
+  </div>
+
+  <div class="alert alert-success" *ngIf="successMessage">
+    {{ successMessage }}
+  </div>
+
+  <!-- Statistiques -->
+  <section class="statistics">
+
+    <div class="stat-card">
+      <div class="stat-icon total-icon">📅</div>
+      <div>
+        <span>Total rendez-vous</span>
+        <h2>{{ totalAppointments }}</h2>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon pending-icon">⏳</div>
+      <div>
+        <span>En attente</span>
+        <h2>{{ pendingCount }}</h2>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon confirmed-icon">✓</div>
+      <div>
+        <span>Confirmés</span>
+        <h2>{{ confirmedCount }}</h2>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon rejected-icon">✕</div>
+      <div>
+        <span>Refusés</span>
+        <h2>{{ rejectedCount }}</h2>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Tableau des rendez-vous -->
+  <section class="appointments-section">
+
+    <div class="section-header">
+      <div>
+        <h2>Demandes de rendez-vous</h2>
+        <p>Consultez et gérez les demandes de vos patients.</p>
+      </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="filter-toolbar">
+
+      <div class="filters">
+
+        <button
+          [class.active]="selectedFilter === 'ALL'"
+          (click)="selectedFilter = 'ALL'">
+          Tous ({{ totalAppointments }})
+        </button>
+
+        <button
+          [class.active]="selectedFilter === 'PENDING'"
+          (click)="selectedFilter = 'PENDING'">
+          En attente ({{ pendingCount }})
+        </button>
+
+        <button
+          [class.active]="selectedFilter === 'CONFIRMED'"
+          (click)="selectedFilter = 'CONFIRMED'">
+          Confirmés ({{ confirmedCount }})
+        </button>
+
+        <button
+          [class.active]="selectedFilter === 'REJECTED'"
+          (click)="selectedFilter = 'REJECTED'">
+          Refusés ({{ rejectedCount }})
+        </button>
+
+      </div>
+
+      <button
+        class="reset-button"
+        type="button"
+        (click)="resetFilters()">
+        ↺ Réinitialiser
+      </button>
+
+    </div>
+
+    <!-- Chargement -->
+    <div class="loading" *ngIf="isLoading">
+      <div class="spinner"></div>
+      <p>Chargement des rendez-vous...</p>
+    </div>
+
+    <!-- Aucun résultat -->
+    <div
+      class="empty-state"
+      *ngIf="!isLoading && filteredAppointments.length === 0">
+
+      <div class="empty-icon">📭</div>
+
+      <h3>Aucun rendez-vous trouvé</h3>
+
+      <p>
+        Aucune demande ne correspond à ce filtre.
+      </p>
+
+      <button
+        class="empty-reset-button"
+        type="button"
+        (click)="resetFilters()">
+        Afficher tous les rendez-vous
+      </button>
+
+    </div>
+
+    <!-- Liste -->
+    <div
+      class="appointments-list"
+      *ngIf="!isLoading && filteredAppointments.length > 0">
+
+      <article
+        class="appointment-card"
+        *ngFor="let appointment of filteredAppointments">
+
+        <!-- Patient -->
+        <div class="card-header">
+
+          <div class="patient-info">
+
+            <div class="patient-avatar">
+              {{ appointment.patientFirstName.charAt(0) }}{{ appointment.patientLastName.charAt(0) }}
+            </div>
+
+            <div>
+              <h3>
+                {{ appointment.patientFirstName }}
+                {{ appointment.patientLastName }}
+              </h3>
+
+              <span class="patient-label">Patient</span>
+            </div>
+
+          </div>
+
+          <span
+            class="status-badge"
+            [ngClass]="getStatusClass(appointment.status)">
+            {{ getStatusLabel(appointment.status) }}
+          </span>
+
+        </div>
+
+        <!-- Informations -->
+        <div class="appointment-details">
+
+          <div class="detail-item">
+            <span class="detail-icon">📧</span>
+            <div>
+              <small>Email</small>
+              <strong>{{ appointment.patientEmail }}</strong>
+            </div>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-icon">📞</span>
+            <div>
+              <small>Téléphone</small>
+              <strong>
+                {{ appointment.patientPhoneNumber || 'Non renseigné' }}
+              </strong>
+            </div>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-icon">📅</span>
+            <div>
+              <small>Date</small>
+              <strong>{{ formatDate(appointment.startAt) }}</strong>
+            </div>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-icon">🕒</span>
+            <div>
+              <small>Horaire</small>
+              <strong>
+                {{ formatTime(appointment.startAt) }}
+                -
+                {{ formatTime(appointment.endAt) }}
+              </strong>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Motif -->
+        <div class="reason-box">
+          <strong>Motif de consultation</strong>
+          <p>
+            {{ appointment.reason || 'Aucun motif renseigné.' }}
+          </p>
+        </div>
+
+        <!-- Actions -->
+        <div
+          class="card-actions"
+          *ngIf="isPending(appointment.status)">
+
+          <button
+            class="accept-button"
+            (click)="acceptAppointment(appointment)"
+            [disabled]="processingId === appointment.appointmentId">
+            ✓ Accepter
+          </button>
+
+          <button
+            class="reject-button"
+            (click)="rejectAppointment(appointment)"
+            [disabled]="processingId === appointment.appointmentId">
+            ✕ Refuser
+          </button>
+
+        </div>
+
+        <div
+          class="processed-message"
+          *ngIf="!isPending(appointment.status)">
+          Ce rendez-vous a déjà été traité.
+        </div>
+
+      </article>
+
+    </div>
+
+  </section>
+
+</div>

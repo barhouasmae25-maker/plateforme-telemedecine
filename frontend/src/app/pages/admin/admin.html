@@ -1,0 +1,271 @@
+<div class="admin-container">
+  <header class="admin-header">
+    <div class="header-content">
+      <span class="eyebrow">ESPACE ADMINISTRATEUR</span>
+      <h1>Administration</h1>
+      <p>Gestion des comptes et validation des professionnels</p>
+    </div>
+
+    <button type="button" class="btn-logout" (click)="logout()">
+      <span aria-hidden="true">↪</span>
+      Déconnexion
+    </button>
+  </header>
+
+  <div *ngIf="errorMessage" class="alert alert-error" role="alert">
+    <span class="alert-icon">!</span>
+    <span>{{ errorMessage }}</span>
+  </div>
+
+  <div *ngIf="successMessage" class="alert alert-success" role="status">
+    <span class="alert-icon">✓</span>
+    <span>{{ successMessage }}</span>
+  </div>
+
+  <section class="stats-grid">
+    <article class="stat-card">
+      <div class="stat-icon icon-blue">U</div>
+      <div class="stat-content">
+        <div class="stat-label">Total utilisateurs</div>
+        <div class="stat-value">{{ totalUsers }}</div>
+      </div>
+    </article>
+
+    <article class="stat-card">
+      <div class="stat-icon icon-green">✓</div>
+      <div class="stat-content">
+        <div class="stat-label">Comptes actifs</div>
+        <div class="stat-value">{{ activeUsers }}</div>
+      </div>
+    </article>
+
+    <article class="stat-card">
+      <div class="stat-icon icon-red">!</div>
+      <div class="stat-content">
+        <div class="stat-label">Comptes désactivés</div>
+        <div class="stat-value">{{ inactiveUsers }}</div>
+      </div>
+    </article>
+
+    <article class="stat-card">
+      <div class="stat-icon icon-orange">P</div>
+      <div class="stat-content">
+        <div class="stat-label">Professionnels à approuver</div>
+        <div class="stat-value">{{ pendingProfessionals }}</div>
+      </div>
+    </article>
+  </section>
+
+  <section class="admin-section">
+    <div class="section-heading">
+      <div>
+        <span class="eyebrow">GESTION DES COMPTES</span>
+        <h2>Utilisateurs</h2>
+        <p>Consultez les comptes et gérez leurs autorisations.</p>
+      </div>
+
+      <button
+        type="button"
+        class="btn btn-primary"
+        (click)="loadUsers()"
+        [disabled]="isLoading || isUpdating"
+      >
+        <span aria-hidden="true">↻</span>
+        {{ isLoading ? 'Chargement...' : 'Actualiser' }}
+      </button>
+    </div>
+
+    <div class="filters">
+      <div class="search-field">
+        <span aria-hidden="true">⌕</span>
+        <input
+          type="search"
+          placeholder="Rechercher par nom, email ou téléphone..."
+          aria-label="Rechercher un utilisateur"
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="applyFilters()"
+        />
+      </div>
+
+      <select
+        aria-label="Filtrer par rôle"
+        [(ngModel)]="selectedRole"
+        (ngModelChange)="applyFilters()"
+      >
+        <option value="ALL">Tous les rôles</option>
+        <option value="ADMIN">Administrateur</option>
+        <option value="MEDECIN">Médecin</option>
+        <option value="PHARMACIEN">Pharmacien</option>
+        <option value="PATIENT">Patient</option>
+        <option value="SECRETAIRE">Secrétaire</option>
+      </select>
+
+      <select
+        aria-label="Filtrer par statut"
+        [(ngModel)]="selectedStatus"
+        (ngModelChange)="applyFilters()"
+      >
+        <option value="ALL">Tous les statuts</option>
+        <option value="ACTIVE">Actifs</option>
+        <option value="INACTIVE">Désactivés</option>
+      </select>
+
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="resetFilters()"
+      >
+        Réinitialiser
+      </button>
+    </div>
+
+    <div *ngIf="isLoading" class="loading-state">
+      <span class="spinner"></span>
+      <span>Chargement des utilisateurs...</span>
+    </div>
+
+    <div
+      *ngIf="!isLoading && errorMessage && users.length === 0"
+      class="empty-state"
+    >
+      <div class="empty-icon">!</div>
+      <h3>Chargement impossible</h3>
+      <p>Vérifiez la connexion avec le serveur.</p>
+      <button type="button" class="btn btn-primary" (click)="loadUsers()">
+        Réessayer
+      </button>
+    </div>
+
+    <div
+      *ngIf="!isLoading && !errorMessage && users.length === 0"
+      class="empty-state"
+    >
+      <div class="empty-icon">U</div>
+      <h3>Aucun utilisateur</h3>
+      <p>Aucun utilisateur reçu depuis le serveur.</p>
+    </div>
+
+    <div
+      *ngIf="!isLoading && users.length > 0 && filteredUsers.length === 0"
+      class="empty-state"
+    >
+      <div class="empty-icon">⌕</div>
+      <h3>Aucun résultat</h3>
+      <p>Aucun utilisateur ne correspond aux critères de recherche.</p>
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="resetFilters()"
+      >
+        Effacer les filtres
+      </button>
+    </div>
+
+    <div class="table-wrapper" *ngIf="filteredUsers.length > 0">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>Utilisateur</th>
+            <th>Email</th>
+            <th>Téléphone</th>
+            <th>Rôle</th>
+            <th>Statut</th>
+            <th>Validation professionnelle</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let user of filteredUsers; trackBy: trackByUserId">
+            <td>
+              <div class="user-cell">
+                <span class="user-avatar">
+                  {{ getUserInitials(user) }}
+                </span>
+                <span class="user-name">{{ getUserName(user) }}</span>
+              </div>
+            </td>
+
+            <td class="email-cell">{{ user.email || '—' }}</td>
+            <td>{{ user.phoneNumber || '—' }}</td>
+
+            <td>
+              <span class="role-label">
+                {{ getRoleLabel(getUserRole(user)) }}
+              </span>
+            </td>
+
+            <td>
+              <span
+                class="status-badge"
+                [ngClass]="user.isActive ? 'status-active' : 'status-inactive'"
+              >
+                <span class="status-dot"></span>
+                {{ user.isActive ? 'Actif' : 'Désactivé' }}
+              </span>
+            </td>
+
+            <td>
+              <ng-container *ngIf="isProfessional(user); else notProfessional">
+                <span
+                  class="status-badge"
+                  [ngClass]="user.isProfessionalApproved
+                    ? 'status-active'
+                    : 'status-pending'"
+                >
+                  <span class="status-dot"></span>
+                  {{ user.isProfessionalApproved ? 'Approuvé' : 'En attente' }}
+                </span>
+              </ng-container>
+
+              <ng-template #notProfessional>
+                <span class="not-applicable">Non applicable</span>
+              </ng-template>
+            </td>
+
+            <td>
+              <div class="action-buttons">
+                <button
+                  type="button"
+                  class="btn"
+                  [ngClass]="user.isActive ? 'btn-danger' : 'btn-success'"
+                  [disabled]="isUpdating"
+                  (click)="toggleUserStatus(user)"
+                >
+                  <ng-container
+                    *ngIf="updatingUserId === user.id; else statusButtonLabel"
+                  >
+                    Modification...
+                  </ng-container>
+
+                  <ng-template #statusButtonLabel>
+                    {{ user.isActive ? 'Désactiver' : 'Activer' }}
+                  </ng-template>
+                </button>
+
+                <button
+                  *ngIf="isProfessional(user) && !user.isProfessionalApproved"
+                  type="button"
+                  class="btn btn-primary"
+                  [disabled]="isUpdating || !user.isActive"
+                  (click)="approveProfessional(user)"
+                >
+                  {{
+                    approvingUserId === user.id
+                      ? 'Approbation...'
+                      : 'Approuver'
+                  }}
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <footer class="table-footer" *ngIf="!isLoading && users.length > 0">
+      <span>Utilisateurs reçus : <strong>{{ users.length }}</strong></span>
+      <span>Utilisateurs affichés : <strong>{{ filteredUsers.length }}</strong></span>
+    </footer>
+  </section>
+</div>
